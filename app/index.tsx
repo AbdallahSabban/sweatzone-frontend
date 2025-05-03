@@ -67,7 +67,7 @@ export default function SignInScreen() {
     };
 
     const handleForgotPassword = () => {
-        router.push('/forgot-password'); // Navigate to Forgot Password screen
+        router.push('/forgot-password'); // Navigate to Forgot Password screenn
     };
 
     const handleSignUp = () => {
