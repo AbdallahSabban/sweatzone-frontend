@@ -133,7 +133,7 @@ export default function OrganizeEventScreen() {
     const handleCreateEvent = () => {
         if (validateInputs()) {
             console.log("Creating event:", { title, eventDate, location, description });
-            // Add event creation logic here (e.g., API call)d
+            // Add event creation logic here (e.g., API call)asd
         }
     };
 
