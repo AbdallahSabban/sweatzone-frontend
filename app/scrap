@@ -1,0 +1,73 @@
+
+const confirmIOSDate = () => {
+        //setEventDate(date.toDateString);
+        toggleDatepicker();
+    }
+
+
+
+
+
+{ showPicker && Platform.OS === "ios" &&
+                (
+                    <View
+                        style={{flexDirection:"row",justifyContent:"space-around"}}
+                    >
+                        <TouchableOpacity style={[styles.button, styles.pickerButton, {backgroundColor: "#11182711"}]
+                        } onPress={toggleDatepicker}>
+                            <Text style={[styles.buttonText,{color:"#075985"}]}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.button, styles.pickerButton, {backgroundColor: "#11182711"}]
+                        } onPress={confirmIOSDate}>
+                            <Text style={[styles.buttonText,{color:"#075985"}]}>Confirm</Text>
+                        </TouchableOpacity>
+                    </View>
+            )}
+
+
+
+
+
+            datePicker: {
+                    height: 120,
+                    maxHeight: 120,
+                    marginTop: -10,
+                },
+                button:{
+                    height: 50,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    borderRadius: 50,
+                    marginTop: 10,
+                    marginBottom: 15,
+                    backgroundColor: "#075985"
+                },
+                pickerButton:{
+                  paddingHorizontal:20,
+
+                },
+                buttonText:{
+                  fontSize:14,
+                  fontWeight:"500",
+                  color:"#fff"
+                },
+
+
+                Things to do:
+                1. make components and put them in pages for better readability
+                    1. text inputs
+                    2. buttons
+
+                2. put styles in one file for everything to reduce code size
+                    1. see what styles are different and what styles are the same, if two styles have the same name but diffferent values then fix it
+
+
+
+            what should i intialize the tournaments json with?
+
+            title:string
+            date:string         //in ISO 8601
+            location:{
+                city:
+                country:
+            }
