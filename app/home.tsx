@@ -1,5 +1,5 @@
 // app/home.tsx
-import { SetStateAction, useState } from "react";
+import { SetStateAction, useState, useEffect, useCallback } from "react";
 import {
     View,
     Text,
@@ -9,31 +9,68 @@ import {
     StyleSheet,
     ScrollView,
     SafeAreaView,
+    RefreshControl,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { createDrawerNavigator, DrawerNavigationProp } from "@react-navigation/drawer";
 import { DrawerContentScrollView, DrawerItemList, DrawerContentComponentProps } from "@react-navigation/drawer";
-import { useRouter, useNavigation } from "expo-router";
+import { useRouter, useNavigation, useFocusEffect } from "expo-router";
 import ProfileScreen from "./profile";
 import SettingsScreen from "./settings";
 import MyTournamentsScreen from "./my-tournaments";
-import OrganizeEventScreen from "./organize-event"; // New screen
+import OrganizeEventScreen from "./organize-event";
+import axios from "axios";
 
 const Drawer = createDrawerNavigator();
 
-// Home Screen with Search Bar and Featured Events
+// Define the event type
+type Event = {
+    id: number;
+    title: string;
+    date: string;
+    location: string;
+};
+
 function HomeContent() {
     const router = useRouter();
     const navigation = useNavigation<DrawerNavigationProp<any>>();
     const [searchQuery, setSearchQuery] = useState("");
+    const [events, setEvents] = useState<Event[]>([]);
+    const [refreshing, setRefreshing] = useState(false); // State for pull-to-refresh
+
+    // Function to fetch events
+    const fetchEvents = useCallback(async () => {
+        try {
+            const response = await axios.get("http://192.168.1.9:3000/api/events");
+            setEvents(response.data.events);
+            console.log("Fetched events:", response.data.events);
+        } catch (error) {
+            console.error("Error fetching events:", error);
+        } finally {
+            setRefreshing(false); // Stop refreshing after fetch completes
+        }
+    }, []);
+
+    // Refetch events every time the screen is focused
+    useFocusEffect(
+        useCallback(() => {
+            fetchEvents();
+        }, [fetchEvents])
+    );
+
+    // Handle pull-to-refresh
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        fetchEvents();
+    }, [fetchEvents]);
 
     const handleSearch = (text: SetStateAction<string>) => {
         setSearchQuery(text);
         console.log("Searching for:", text);
     };
 
-    const goToEventDetails = () => {
-        router.push("/event-details");
+    const goToEventDetails = (eventId?: number) => {
+        router.push({ pathname: "/event-details", params: { eventId } });
     };
 
     const openLeftDrawer = () => {
@@ -49,7 +86,17 @@ function HomeContent() {
                 <Text style={[styles.headerTitle, { fontFamily: "RussoOne" }]}>Explore</Text>
                 <View style={styles.menuButton} />
             </View>
-            <ScrollView contentContainerStyle={styles.homeContainer}>
+            <ScrollView
+                contentContainerStyle={styles.homeContainer}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor="#32CD32" // Color of the refresh indicator
+                        colors={["#32CD32"]} // Color for the spinner (Android)
+                    />
+                }
+            >
                 <TextInput
                     style={styles.searchBar}
                     placeholder="Search Events..."
@@ -60,17 +107,39 @@ function HomeContent() {
                 <Text style={[styles.sectionTitle, { fontFamily: "RussoOne" }]}>
                     Featured Events
                 </Text>
-                <TouchableOpacity style={styles.eventBox} onPress={goToEventDetails}>
+                {/* Example Event */}
+                <TouchableOpacity
+                    style={styles.eventBox}
+                    onPress={() => router.push("/ewc-details")}
+                >
                     <Image
                         source={require("../assets/images/ewc.jpg")}
                         style={styles.eventImage}
                     />
                     <View style={styles.eventDetails}>
                         <Text style={styles.eventTitle}>Esports World Cup 2025</Text>
-                        <Text style={styles.eventInfo}>March 15, 2025</Text>
+                        <Text style={styles.eventInfo}>Sun May 11 2025</Text>
                         <Text style={styles.eventInfo}>Jeddah, Saudi Arabia</Text>
                     </View>
                 </TouchableOpacity>
+                {/* Fetched Events */}
+                {events.map((event) => (
+                    <TouchableOpacity
+                        key={event.id}
+                        style={styles.eventBox}
+                        onPress={() => goToEventDetails(event.id)}
+                    >
+                        <Image
+                            source={require("../assets/images/trophy.png")}
+                            style={styles.eventImage}
+                        />
+                        <View style={styles.eventDetails}>
+                            <Text style={styles.eventTitle}>{event.title}</Text>
+                            <Text style={styles.eventInfo}>{event.date}</Text>
+                            <Text style={styles.eventInfo}>{event.location}</Text>
+                        </View>
+                    </TouchableOpacity>
+                ))}
             </ScrollView>
         </SafeAreaView>
     );
@@ -135,7 +204,6 @@ export default function Home() {
                 <Drawer.Screen name="My Tournaments" component={MyTournamentsScreen} />
                 <Drawer.Screen name="Organize Event" component={OrganizeEventScreen} />
                 <Drawer.Screen name="Settings" component={SettingsScreen} />
-
             </Drawer.Navigator>
         </GestureHandlerRootView>
     );
