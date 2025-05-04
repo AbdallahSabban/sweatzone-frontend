@@ -12,7 +12,6 @@ import {
     TextInput as TextInputType,
     TouchableOpacity,
     Platform,
-    Modal,
 } from "react-native";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { SAUDI_CITIES } from "@/assets/constants/cities";
