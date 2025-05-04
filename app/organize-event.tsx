@@ -15,10 +15,9 @@ import {
 } from "react-native";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { SAUDI_CITIES } from "@/assets/constants/cities";
-import {DrawerNavigationProp} from "@react-navigation/drawer"; // Adjust the path based on your file location
+import { DrawerNavigationProp } from "@react-navigation/drawer";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import axios from "axios";
-
 
 export default function OrganizeEventScreen() {
     const navigation = useNavigation<DrawerNavigationProp<any>>();
@@ -28,10 +27,12 @@ export default function OrganizeEventScreen() {
     const [showPicker, setShowPicker] = useState(false);
     const [location, setLocation] = useState("");
     const [description, setDescription] = useState("");
+    const [participants, setParticipants] = useState(""); // New state for participants
     const [titleError, setTitleError] = useState("");
     const [dateError, setDateError] = useState("");
     const [locationError, setLocationError] = useState("");
     const [descriptionError, setDescriptionError] = useState("");
+    const [participantsError, setParticipantsError] = useState(""); // New error state for participants
     const [filteredCities, setFilteredCities] = useState<typeof SAUDI_CITIES>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const locationInputRef = useRef<TextInputType>(null);
@@ -40,7 +41,6 @@ export default function OrganizeEventScreen() {
         navigation.openDrawer();
     };
 
-    // Handle location input and filter suggestions
     const handleLocationChange = (text: string) => {
         setLocation(text);
         if (text.length > 0) {
@@ -55,39 +55,30 @@ export default function OrganizeEventScreen() {
         }
     };
 
-    const toggleDatepicker = () =>{
+    const toggleDatepicker = () => {
         setShowPicker(!showPicker);
     };
 
-    //function when the value changes
     const onChange = (event: any, selectedDate: Date) => {
-
-        if (event){
-            const currentDate= selectedDate;
+        if (event) {
+            const currentDate = selectedDate;
             setDate(currentDate);
-            if (Platform.OS === "android"){
+            if (Platform.OS === "android") {
                 toggleDatepicker();
-
-                console.log("is android");
             }
             setEventDate(currentDate.toDateString());
-            console.log("event is there");
-            console.log("new eventDate (in onChange) is : "+ eventDate);
-        }
-        else {
+        } else {
             toggleDatepicker();
-            console.log("event is not there");
         }
     };
 
-    // Select a city from the suggestions and include the country
     const selectCity = (city: string, country: string) => {
-        const fullLocation = `${city}, ${country}`; // Combine city and country
-        setLocation(fullLocation); // Update the location state with both
-        setShowSuggestions(false); // Hide suggestions
-        setLocationError(""); // Clear any error
-        Keyboard.dismiss(); // Dismiss keyboard
-        locationInputRef.current?.blur(); // Ensure input loses focus
+        const fullLocation = `${city}, ${country}`;
+        setLocation(fullLocation);
+        setShowSuggestions(false);
+        setLocationError("");
+        Keyboard.dismiss();
+        locationInputRef.current?.blur();
     };
 
     const validateInputs = () => {
@@ -102,14 +93,11 @@ export default function OrganizeEventScreen() {
 
         if (!eventDate || !/^\w{3} \w{3} \d{1,2} \d{4}$/.test(eventDate)) {
             setDateError("Enter a valid date (e.g., Sat Mar 15 2025)");
-            console.log(eventDate);
             isValid = false;
         } else {
             setDateError("");
         }
 
-
-        // Check if location matches a city-country pair from SAUDI_CITIES
         const isValidLocation = SAUDI_CITIES.some(
             (item) => `${item.city}, ${item.country}` === location
         );
@@ -127,12 +115,28 @@ export default function OrganizeEventScreen() {
             setDescriptionError("");
         }
 
+        // Validate participants (at least two participants required)
+        const participantList = participants
+            .split("\n")
+            .map((p) => p.trim())
+            .filter((p) => p.length > 0);
+        if (participantList.length < 2) {
+            setParticipantsError("At least two participants are required");
+            isValid = false;
+        } else {
+            setParticipantsError("");
+        }
+
         return isValid;
     };
 
     const handleCreateEvent = async () => {
         if (validateInputs()) {
-            console.log("Creating event:", { title, eventDate, location, description });
+            // Split participants into an array, trim whitespace, and filter out empty entries
+            const participantList = participants
+                .split("\n")
+                .map((p) => p.trim())
+                .filter((p) => p.length > 0);
 
             try {
                 const response = await axios.post("http://192.168.1.9:3000/api/events", {
@@ -140,18 +144,16 @@ export default function OrganizeEventScreen() {
                     date: eventDate,
                     location: location,
                     description: description,
+                    participants: participantList, // Send participants array
                 });
 
                 console.log("Event created successfully:", response.data);
-                // Optionally navigate or show a success message
-                navigation.goBack(); // Or navigate to event list / details screen
+                navigation.goBack();
             } catch (error) {
                 console.error("Error creating event:", error);
-                // Optionally show an error message to the user
             }
         }
     };
-
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -177,21 +179,18 @@ export default function OrganizeEventScreen() {
                 {titleError ? <Text style={styles.errorText}>{titleError}</Text> : null}
 
                 <Text style={[styles.label, { fontFamily: "RussoOne" }]}>Date</Text>
-
-
-
                 <TouchableOpacity onPress={toggleDatepicker}>
-                <TextInput
-                    style={styles.input}
-                    placeholder="e.g., Sat Mar 16 2025"
-                    placeholderTextColor="#B0B0B0"
-                    editable={false}
-                    pointerEvents={"none"}
-                    value={date.toDateString()}
-                    onChangeText={setEventDate}
-                />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="e.g., Sat Mar 16 2025"
+                        placeholderTextColor="#B0B0B0"
+                        editable={false}
+                        pointerEvents={"none"}
+                        value={date.toDateString()}
+                        onChangeText={setEventDate}
+                    />
                 </TouchableOpacity>
-                { showPicker && (
+                {showPicker && (
                     <DateTimePicker
                         mode="date"
                         minimumDate={new Date()}
@@ -201,7 +200,7 @@ export default function OrganizeEventScreen() {
                         style={styles.datePicker}
                         onChange={(event, selectedDate) => {
                             if (selectedDate) {
-                                onChange(event, selectedDate); // Ensure selectedDate is passed as a Date
+                                onChange(event, selectedDate);
                             }
                         }}
                     />
@@ -230,7 +229,7 @@ export default function OrganizeEventScreen() {
                                     styles.suggestionItem,
                                     pressed && { backgroundColor: "#333" },
                                 ]}
-                                onPress={() => selectCity(item.city, item.country)} // Pass both city and country
+                                onPress={() => selectCity(item.city, item.country)}
                             >
                                 <Text style={styles.suggestionText}>{`${item.city}, ${item.country}`}</Text>
                             </Pressable>
@@ -250,6 +249,18 @@ export default function OrganizeEventScreen() {
                     numberOfLines={3}
                 />
                 {descriptionError ? <Text style={styles.errorText}>{descriptionError}</Text> : null}
+
+                <Text style={[styles.label, { fontFamily: "RussoOne" }]}>Participants</Text>
+                <TextInput
+                    style={[styles.input, styles.descriptionInput]}
+                    placeholder="Enter one participant per line"
+                    placeholderTextColor="#B0B0B0"
+                    value={participants}
+                    onChangeText={setParticipants}
+                    multiline
+                    numberOfLines={3}
+                />
+                {participantsError ? <Text style={styles.errorText}>{participantsError}</Text> : null}
 
                 <Pressable style={styles.createButton} onPress={handleCreateEvent}>
                     <Text style={[styles.createButtonText, { fontFamily: "RussoOne" }]}>Create</Text>
@@ -321,20 +332,6 @@ const styles = StyleSheet.create({
     },
     createButtonText: {
         color: "#000",
-        fontSize: 18,
-        fontWeight: "bold",
-    },
-    confirmButton: {
-        backgroundColor: "#111",
-        padding: 15,
-        borderRadius: 10,
-        alignItems: "center",
-        marginTop: 10,
-        marginBottom: 10,
-        width: "50%",
-    },
-    confirmButtonText: {
-        color: "#32CD32",
         fontSize: 18,
         fontWeight: "bold",
     },
