@@ -58,7 +58,7 @@ export default function SignInScreen() {
             setPasswordError('');
         }
 
-        if (isValid && username === 'test' && password === 'test') {
+        if (isValid && username === 'admin' && password === 'admin') {
             router.push('/home'); // Navigate to HomePage if credentials match
         } else if (isValid) {
             setUsernameError('Invalid username or password');

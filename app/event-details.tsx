@@ -1,5 +1,5 @@
 // app/event-details.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     View,
     Text,
@@ -13,8 +13,9 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { createDrawerNavigator, DrawerNavigationProp } from "@react-navigation/drawer";
 import { DrawerContentScrollView, DrawerItemList, DrawerContentComponentProps } from "@react-navigation/drawer";
 import { useNavigation } from "@react-navigation/native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import Svg, { Rect, Path, Text as SvgText } from "react-native-svg";
+import axios, { AxiosError } from "axios"; // Import AxiosError
 
 const Drawer = createDrawerNavigator();
 
@@ -45,23 +46,77 @@ function EventHeader({ navigation }: { navigation: DrawerNavigationProp<any> }) 
 // Event Details Content
 function EventDetailsContent() {
     const navigation = useNavigation<DrawerNavigationProp<any>>();
+    const { eventId } = useLocalSearchParams();
+    const [eventTitle, setEventTitle] = useState<string | null>(null);
+    const [eventDescription, setEventDescription] = useState<string | null>(null);
+    const [eventDate, setEventDate] = useState<string | null>(null);
+    const [eventLocation, setEventLocation] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    // Fetch event data when eventId is available
+    useEffect(() => {
+        if (eventId) {
+            const fetchEvent = async () => {
+                try {
+                    const response = await axios.get(`http://192.168.1.9:3000/api/events/${eventId}`);
+                    const { title, description, date, location } = response.data.event;
+                    setEventTitle(title);
+                    setEventDescription(description);
+                    setEventDate(date);
+                    setEventLocation(location);
+                    setError(null);
+                } catch (err) {
+                    const axiosError = err as AxiosError; // Type err as AxiosError
+                    console.error("Error fetching event:", {
+                        message: axiosError.message,
+                        response: axiosError.response ? {
+                            status: axiosError.response.status,
+                            data: axiosError.response.data,
+                        } : null,
+                        eventId,
+                    });
+                    setError("Failed to fetch event details");
+                    setEventTitle(null);
+                    setEventDescription(null);
+                    setEventDate(null);
+                    setEventLocation(null);
+                }
+            };
+            fetchEvent();
+        } else {
+            setEventTitle(null);
+            setEventDescription(null);
+            setEventDate(null);
+            setEventLocation(null);
+            setError("No event ID provided");
+        }
+    }, [eventId]);
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <ScrollView contentContainerStyle={styles.detailsContainer}>
                 <EventHeader navigation={navigation} />
+                {error ? (
+                    <Text style={styles.errorText}>{error}</Text>
+                ) : null}
                 <Image
-                    source={require("../assets/images/ewc.jpg")}
+                    source={require("../assets/images/trophy.png")}
                     style={styles.eventImage}
+                    resizeMode="contain"
                 />
-                <Text style={styles.eventTitle}>Esports World Cup 2025</Text>
-                <Text style={styles.eventInfo}>March 15, 2025</Text>
-                <Text style={styles.eventInfo}>Jeddah, Saudi Arabia</Text>
+                <Text style={styles.eventTitle}>
+                    {eventTitle || "Esports World Cup 2025"}
+                </Text>
+                <Text style={styles.eventInfo}>
+                    {eventDate || "March 15, 2025"}
+                </Text>
+                <Text style={styles.eventInfo}>
+                    {eventLocation || "Jeddah, Saudi Arabia"}
+                </Text>
                 <Text style={styles.eventInfo}>Organizer: SweatZone Team</Text>
                 <Text style={styles.sectionTitle}>Event Description</Text>
                 <Text style={styles.organizerText}>
-                    Join us for the ultimate esports showdown! This event features top-tier teams competing in a
-                    high-stakes tournament. Don’t miss out on the action—register now and be part of the excitement!
+                    {eventDescription || "Join us for the ultimate esports showdown! This event features top-tier teams competing in a high-stakes tournament. Don’t miss out on the action—register now and be part of the excitement!"}
                 </Text>
                 <TouchableOpacity style={styles.registerButton} onPress={() => console.log("Register clicked")}>
                     <Text style={styles.registerButtonText}>Register</Text>
@@ -86,13 +141,13 @@ function BracketsScreen() {
     const boxHeight = 40;
     const spacing = 20;
     const verticalSpacing = 60;
-    const totalWidth = 650; // Enough to fit all rounds (10 + 150 + 20 + 150 + 20 + 150 + margins)
+    const totalWidth = 650;
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <EventHeader navigation={navigation} />
             <ScrollView
-                horizontal={true} // Enable horizontal scrolling
+                horizontal={true}
                 contentContainerStyle={styles.bracketsContainer}
                 showsHorizontalScrollIndicator={true}
             >
@@ -100,17 +155,14 @@ function BracketsScreen() {
                     <Text style={styles.sectionTitle}>Brackets</Text>
                     <Svg height="500" width={totalWidth}>
                         {/* Quarterfinals */}
-                        {/* Match 1: xX_Sniper_Xx vs Ahmad Elmaamoun */}
                         <Rect x="10" y="50" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
                         <SvgText x="15" y="70" fill="#fff" fontSize="16">{participants[0]}</SvgText>
                         <Rect x="10" y="90" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
                         <SvgText x="15" y="110" fill="#fff" fontSize="16">{participants[1]}</SvgText>
-                        {/* Match 2: ShadowStriker vs BlazeMaster */}
                         <Rect x="10" y="170" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
                         <SvgText x="15" y="190" fill="#fff" fontSize="16">{participants[2]}</SvgText>
                         <Rect x="10" y="210" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
                         <SvgText x="15" y="230" fill="#fff" fontSize="16">{participants[3]}</SvgText>
-                        {/* Bye: NinjaLegend */}
                         <Rect x="10" y="290" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
                         <SvgText x="15" y="310" fill="#fff" fontSize="16">{participants[4]} (Bye)</SvgText>
 
@@ -120,12 +172,10 @@ function BracketsScreen() {
                         <Path d="M160 310 H240" stroke="#32CD32" strokeWidth="2" fill="none" />
 
                         {/* Semifinals */}
-                        {/* Match 1: Winner QF1 vs NinjaLegend */}
                         <Rect x="240" y="130" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
                         <SvgText x="245" y="150" fill="#fff" fontSize="16">Winner QF1</SvgText>
                         <Rect x="240" y="170" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
                         <SvgText x="245" y="190" fill="#fff" fontSize="16">{participants[4]}</SvgText>
-                        {/* Match 2: Winner QF2 vs TBD */}
                         <Rect x="240" y="250" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
                         <SvgText x="245" y="270" fill="#fff" fontSize="16">Winner QF2</SvgText>
                         <Rect x="240" y="290" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
@@ -249,6 +299,11 @@ const styles = StyleSheet.create({
         color: "#B0B0B0",
         fontSize: 16,
         marginBottom: 5,
+    },
+    errorText: {
+        color: "red",
+        fontSize: 16,
+        marginBottom: 15,
     },
     sectionTitle: {
         color: "#32CD32",
