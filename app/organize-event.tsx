@@ -12,6 +12,7 @@ import {
     TextInput as TextInputType,
     TouchableOpacity,
     Platform,
+    Modal,
 } from "react-native";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { SAUDI_CITIES } from "@/assets/constants/cities";
@@ -130,12 +131,28 @@ export default function OrganizeEventScreen() {
         return isValid;
     };
 
-    const handleCreateEvent = () => {
+    const handleCreateEvent = async () => {
         if (validateInputs()) {
             console.log("Creating event:", { title, eventDate, location, description });
-            // Add event creation logic here (e.g., API call)asd
+
+            try {
+                const response = await axios.post("http://192.168.1.9:3000/api/events", {
+                    title: title,
+                    date: eventDate,
+                    location: location,
+                    description: description,
+                });
+
+                console.log("Event created successfully:", response.data);
+                // Optionally navigate or show a success message
+                navigation.goBack(); // Or navigate to event list / details screen
+            } catch (error) {
+                console.error("Error creating event:", error);
+                // Optionally show an error message to the user
+            }
         }
     };
+
 
     return (
         <SafeAreaView style={styles.safeArea}>
