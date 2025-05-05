@@ -1,16 +1,10 @@
 import { useNavigation } from "@react-navigation/native";
 import { DrawerNavigationProp } from "@react-navigation/drawer";
-import {
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
-    TouchableOpacity,
-} from "react-native";
+import { SafeAreaView, ScrollView, StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import axios, { AxiosError } from "axios";
+import { useFocusEffect } from "@react-navigation/native";
 
 // Reusable Header Component
 function EventHeader({ navigation }: { navigation: DrawerNavigationProp<any> }) {
@@ -44,6 +38,25 @@ export default function ParticipantsScreen() {
     const [eventDate, setEventDate] = useState<string | null>(null); // Optional
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
+
+    // WebSocket connection and message handling
+    useFocusEffect(
+        React.useCallback(() => {
+            const socket = new WebSocket('ws://192.168.1.9:3000');
+            console.log('Socket created');
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('Message from backend:', data.message);
+            };
+
+            // Cleanup: Close the socket when the screen loses focus or unmounts
+            return () => {
+                console.log('Cleanup: Closing WebSocket');
+                socket.close();
+            };
+        }, [])
+    );
 
     // Fetch event data (including participants) when eventId is available
     useEffect(() => {
@@ -104,7 +117,7 @@ export default function ParticipantsScreen() {
                 ) : participants.length === 0 ? (
                     <Text style={styles.noParticipantsText}>No participants found for this event.</Text>
                 ) : (
-                    participants.map(( participant, index) => (
+                    participants.map((participant, index) => (
                         <View key={index} style={styles.participantBox}>
                             <Text style={styles.participantText}>{participant}</Text>
                         </View>
