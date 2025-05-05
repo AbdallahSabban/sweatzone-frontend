@@ -14,7 +14,7 @@ import { DrawerContentScrollView, DrawerItemList, DrawerContentComponentProps } 
 import { useNavigation } from "@react-navigation/native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import axios, { AxiosError } from "axios";
-import BracketsScreen from "./brackets";
+import BracketsScreen from "./bracketsNew";
 import ParticipantsScreen from "./participants";
 
 const Drawer = createDrawerNavigator();
