@@ -8,7 +8,9 @@ import {
     View,
     TouchableOpacity,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { useState, useEffect } from "react";
+import axios, { AxiosError } from "axios";
 
 // Reusable Header Component
 function EventHeader({ navigation }: { navigation: DrawerNavigationProp<any> }) {
@@ -36,24 +38,78 @@ function EventHeader({ navigation }: { navigation: DrawerNavigationProp<any> }) 
 
 export default function ParticipantsScreen() {
     const navigation = useNavigation<DrawerNavigationProp<any>>();
-    const participants = [
-        { gamertag: "sniperman" },
-        { gamertag: "Ahmad Elmaamoun" },
-        { gamertag: "Abdallah" },
-        { gamertag: "BlazeMaster" },
-        { gamertag: "NinjaLegend" },
-    ];
+    const { eventId } = useLocalSearchParams();
+    const [participants, setParticipants] = useState<string[]>([]);
+    const [eventTitle, setEventTitle] = useState<string | null>(null); // Optional
+    const [eventDate, setEventDate] = useState<string | null>(null); // Optional
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState<boolean>(false);
+
+    // Fetch event data (including participants) when eventId is available
+    useEffect(() => {
+        if (eventId) {
+            const fetchEventData = async () => {
+                setLoading(true);
+                try {
+                    const response = await axios.get(
+                        `http://192.168.1.9:3000/api/events/${eventId}`
+                    );
+                    const { title, date, participants } = response.data.event;
+                    setEventTitle(title);
+                    setEventDate(date);
+                    setParticipants(participants || []);
+                    setError(null);
+                } catch (err) {
+                    const axiosError = err as AxiosError;
+                    console.error("Error fetching event data:", {
+                        message: axiosError.message,
+                        response: axiosError.response
+                            ? {
+                                status: axiosError.response.status,
+                                data: axiosError.response.data,
+                            }
+                            : null,
+                        eventId,
+                    });
+                    setError("Failed to fetch event data");
+                    setEventTitle(null);
+                    setEventDate(null);
+                    setParticipants([]);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            fetchEventData();
+        } else {
+            setError("No event ID provided");
+            setEventTitle(null);
+            setEventDate(null);
+            setParticipants([]);
+            setLoading(false);
+        }
+    }, [eventId]);
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <EventHeader navigation={navigation} />
             <ScrollView contentContainerStyle={styles.participantsContainer}>
+                {/* Optional: Display event title and date */}
+                {eventTitle && <Text style={styles.eventTitle}>{eventTitle}</Text>}
+                {eventDate && <Text style={styles.eventInfo}>{eventDate}</Text>}
                 <Text style={styles.sectionTitle}>Participants</Text>
-                {participants.map((participant, index) => (
-                    <View key={index} style={styles.participantBox}>
-                        <Text style={styles.participantText}>{participant.gamertag}</Text>
-                    </View>
-                ))}
+                {loading ? (
+                    <Text style={styles.loadingText}>Loading participants...</Text>
+                ) : error ? (
+                    <Text style={styles.errorText}>{error}</Text>
+                ) : participants.length === 0 ? (
+                    <Text style={styles.noParticipantsText}>No participants found for this event.</Text>
+                ) : (
+                    participants.map(( participant, index) => (
+                        <View key={index} style={styles.participantBox}>
+                            <Text style={styles.participantText}>{participant}</Text>
+                        </View>
+                    ))
+                )}
             </ScrollView>
         </SafeAreaView>
     );
@@ -103,5 +159,32 @@ const styles = StyleSheet.create({
     menuText: {
         color: "#32CD32",
         fontSize: 30,
+    },
+    errorText: {
+        color: "red",
+        fontSize: 16,
+        marginBottom: 15,
+    },
+    loadingText: {
+        color: "#B0B0B0",
+        fontSize: 16,
+        marginBottom: 15,
+    },
+    noParticipantsText: {
+        color: "#B0B0B0",
+        fontSize: 16,
+        marginBottom: 15,
+    },
+    eventTitle: {
+        color: "#32CD32",
+        fontSize: 24,
+        fontWeight: "bold",
+        marginBottom: 10,
+        fontFamily: "RussoOne",
+    },
+    eventInfo: {
+        color: "#B0B0B0",
+        fontSize: 16,
+        marginBottom: 5,
     },
 });
