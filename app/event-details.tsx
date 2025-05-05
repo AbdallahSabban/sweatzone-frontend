@@ -1,4 +1,3 @@
-// app/event-details.tsx
 import { useState, useEffect } from "react";
 import {
     View,
@@ -14,8 +13,9 @@ import { createDrawerNavigator, DrawerNavigationProp } from "@react-navigation/d
 import { DrawerContentScrollView, DrawerItemList, DrawerContentComponentProps } from "@react-navigation/drawer";
 import { useNavigation } from "@react-navigation/native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import Svg, { Rect, Path, Text as SvgText } from "react-native-svg";
-import axios, { AxiosError } from "axios"; // Import AxiosError
+import axios, { AxiosError } from "axios";
+import BracketsScreen from "./brackets";
+import ParticipantsScreen from "./participants";
 
 const Drawer = createDrawerNavigator();
 
@@ -66,7 +66,7 @@ function EventDetailsContent() {
                     setEventLocation(location);
                     setError(null);
                 } catch (err) {
-                    const axiosError = err as AxiosError; // Type err as AxiosError
+                    const axiosError = err as AxiosError;
                     console.error("Error fetching event:", {
                         message: axiosError.message,
                         response: axiosError.response ? {
@@ -121,103 +121,6 @@ function EventDetailsContent() {
                 <TouchableOpacity style={styles.registerButton} onPress={() => console.log("Register clicked")}>
                     <Text style={styles.registerButtonText}>Register</Text>
                 </TouchableOpacity>
-            </ScrollView>
-        </SafeAreaView>
-    );
-}
-
-// Brackets Screen with SVG
-function BracketsScreen() {
-    const navigation = useNavigation<DrawerNavigationProp<any>>();
-    const participants = [
-        "xX_Sniper_Xx",
-        "Ahmad Elmaamoun",
-        "Abdallah",
-        "BlazeMaster",
-        "NinjaLegend",
-    ];
-
-    const boxWidth = 150;
-    const boxHeight = 40;
-    const spacing = 20;
-    const verticalSpacing = 60;
-    const totalWidth = 650;
-
-    return (
-        <SafeAreaView style={styles.safeArea}>
-            <EventHeader navigation={navigation} />
-            <ScrollView
-                horizontal={true}
-                contentContainerStyle={styles.bracketsContainer}
-                showsHorizontalScrollIndicator={true}
-            >
-                <View>
-                    <Text style={styles.sectionTitle}>Brackets</Text>
-                    <Svg height="500" width={totalWidth}>
-                        {/* Quarterfinals */}
-                        <Rect x="10" y="50" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
-                        <SvgText x="15" y="70" fill="#fff" fontSize="16">{participants[0]}</SvgText>
-                        <Rect x="10" y="90" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
-                        <SvgText x="15" y="110" fill="#fff" fontSize="16">{participants[1]}</SvgText>
-                        <Rect x="10" y="170" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
-                        <SvgText x="15" y="190" fill="#fff" fontSize="16">{participants[2]}</SvgText>
-                        <Rect x="10" y="210" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
-                        <SvgText x="15" y="230" fill="#fff" fontSize="16">{participants[3]}</SvgText>
-                        <Rect x="10" y="290" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
-                        <SvgText x="15" y="310" fill="#fff" fontSize="16">{participants[4]} (Bye)</SvgText>
-
-                        {/* Connecting Lines - Quarterfinals to Semifinals */}
-                        <Path d="M160 70 H200 V150 H240" stroke="#32CD32" strokeWidth="2" fill="none" />
-                        <Path d="M160 190 H200 V150 H240" stroke="#32CD32" strokeWidth="2" fill="none" />
-                        <Path d="M160 310 H240" stroke="#32CD32" strokeWidth="2" fill="none" />
-
-                        {/* Semifinals */}
-                        <Rect x="240" y="130" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
-                        <SvgText x="245" y="150" fill="#fff" fontSize="16">Winner QF1</SvgText>
-                        <Rect x="240" y="170" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
-                        <SvgText x="245" y="190" fill="#fff" fontSize="16">{participants[4]}</SvgText>
-                        <Rect x="240" y="250" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
-                        <SvgText x="245" y="270" fill="#fff" fontSize="16">Winner QF2</SvgText>
-                        <Rect x="240" y="290" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
-                        <SvgText x="245" y="310" fill="#fff" fontSize="16">TBD</SvgText>
-
-                        {/* Connecting Lines - Semifinals to Final */}
-                        <Path d="M390 150 H430 V270 H470" stroke="#32CD32" strokeWidth="2" fill="none" />
-                        <Path d="M390 270 H430 V270 H470" stroke="#32CD32" strokeWidth="2" fill="none" />
-
-                        {/* Final */}
-                        <Rect x="470" y="250" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
-                        <SvgText x="475" y="270" fill="#fff" fontSize="16">Winner SF1</SvgText>
-                        <Rect x="470" y="290" width={boxWidth} height={boxHeight} fill="#1A1A1A" rx="5" />
-                        <SvgText x="475" y="310" fill="#fff" fontSize="16">Winner SF2</SvgText>
-                    </Svg>
-                </View>
-            </ScrollView>
-        </SafeAreaView>
-    );
-}
-
-// Participants Screen
-function ParticipantsScreen() {
-    const navigation = useNavigation<DrawerNavigationProp<any>>();
-    const participants = [
-        { gamertag: "xX_Sniper_Xx" },
-        { gamertag: "Ahmad Elmaamoun" },
-        { gamertag: "Abdallah" },
-        { gamertag: "BlazeMaster" },
-        { gamertag: "NinjaLegend" },
-    ];
-
-    return (
-        <SafeAreaView style={styles.safeArea}>
-            <EventHeader navigation={navigation} />
-            <ScrollView contentContainerStyle={styles.participantsContainer}>
-                <Text style={styles.sectionTitle}>Participants</Text>
-                {participants.map((participant, index) => (
-                    <View key={index} style={styles.participantBox}>
-                        <Text style={styles.participantText}>{participant.gamertag}</Text>
-                    </View>
-                ))}
             </ScrollView>
         </SafeAreaView>
     );
@@ -333,21 +236,5 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-    },
-    bracketsContainer: {
-        padding: 20,
-    },
-    participantsContainer: {
-        padding: 20,
-    },
-    participantBox: {
-        backgroundColor: "#1A1A1A",
-        padding: 10,
-        borderRadius: 5,
-        marginVertical: 5,
-    },
-    participantText: {
-        color: "#fff",
-        fontSize: 16,
     },
 });
