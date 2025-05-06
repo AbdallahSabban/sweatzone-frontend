@@ -67,6 +67,7 @@ export default function MatchesScreen() {
             setEventTitle(title);
             setEventDate(date);
             setMatches(matches || []);
+            console.log("Matches:", matches);
             setError(null);
         } catch (err) {
             const axiosError = err as AxiosError;
@@ -110,10 +111,12 @@ export default function MatchesScreen() {
                 //const { matchId, winner } = data;
                 const matchId = data.match.id;
                 const winner = data.match.winner;
+                const player1 = data.match.player1;
+                const player2 = data.match.player2;
                 console.log("Received match update:", { matchId, winner });
                 setMatches((prevMatches) =>
                     prevMatches.map((m) =>
-                        m.id === matchId ? { ...m, winner } : m
+                        m.id === matchId ? { ...m, winner, player1, player2 } : m
                     )
                 );
             } catch (err) {
@@ -172,20 +175,26 @@ export default function MatchesScreen() {
                     <Text style={styles.noParticipantsText}>No matches found for this event.</Text>
                 ) : (
                     matches.map((match) => (
-                        <View key={match.id} style={styles.matchBox}>
+                        <TouchableOpacity key={match.id} style={styles.matchBox} onPress={() => handleMatchClick(match)}>
                             <Text style={styles.roundText}>Round {match.round}</Text>
                             <Text style={styles.matchText}>
-                                {match.player1} {match.winner === match.player1 && '✅'} vs{" "}
-                                {match.player2} {match.winner === match.player2 && '✅'}
+                                <Text style={[
+                                    styles.playerName,
+                                    match.winner === match.player1 && (match.round === Math.max(...matches.map(m => m.round)) ? styles.goldText : styles.greenText)
+                                ]}>
+                                    {match.player1}
+                                </Text> {match.winner === match.player1} vs{" "}
+                                <Text style={[
+                                    styles.playerName,
+                                    match.winner === match.player2 && (match.round === Math.max(...matches.map(m => m.round)) ? styles.goldText : styles.greenText)
+                                ]}>
+                                    {match.player2}
+                                </Text> {match.winner === match.player2 }
                             </Text>
-                            <TouchableOpacity
-                                style={styles.button}
-                                onPress={() => handleMatchClick(match)}
-                            >
-                                <Text style={styles.buttonText}>Select Winner</Text>
-                            </TouchableOpacity>
-                        </View>
+
+                        </TouchableOpacity>
                     ))
+
                 )}
             </ScrollView>
 
@@ -227,11 +236,18 @@ const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: "#000" },
     participantsContainer: { padding: 20 },
     sectionTitle: { color: "#32CD32", fontSize: 20, marginTop: 20, marginBottom: 10, fontFamily: "RussoOne" },
-    matchBox: { backgroundColor: "#1A1A1A", padding: 10, borderRadius: 5, marginVertical: 5 },
-    matchText: { color: "#fff", fontSize: 16, textAlign: "center", fontFamily: "RussoOne" },
+    matchBox: {
+        backgroundColor: "#1A1A1A",
+        padding: 10,
+        borderRadius: 10,
+        marginVertical: 5,
+        borderWidth: 1,               // add border
+        borderColor: "#006400",       // dark green
+    },
+    matchText: { color: "#fff", fontSize: 16, textAlign: "center" },
     roundText: { color: "#32CD32", fontSize: 14, marginBottom: 5 },
-    button: { backgroundColor: "#32CD32", padding: 10, borderRadius: 5, marginTop: 10 },
-    buttonText: { color: "#fff", fontSize: 14, textAlign: "center" },
+    button: { backgroundColor: "#32CD32", padding: 10, borderRadius: 8, marginTop: 10 },
+    buttonText: { color: "#fff", fontSize: 14, textAlign: "center", fontFamily: "RussoOne" },  // <- RussoOne
     header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 15 },
     backButton: { padding: 10 },
     backText: { color: "#32CD32", fontSize: 18 },
@@ -249,4 +265,7 @@ const styles = StyleSheet.create({
     playerColumn: { flex: 1, alignItems: "center", padding: 10 },
     playerName: { color: "#fff", fontSize: 18, fontFamily: "RussoOne" },
     divider: { width: 2, backgroundColor: "#32CD32", height: "100%" },
+    greenText: { color: "#32CD32" },   // <- winner green
+    goldText: { color: "gold" },       // <- final round gold
 });
+
