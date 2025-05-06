@@ -1,9 +1,10 @@
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { DrawerNavigationProp } from "@react-navigation/drawer";
 import { SafeAreaView, ScrollView, StyleSheet, Text, View, TouchableOpacity, Modal } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios, { AxiosError } from "axios";
+import { useFocusEffect } from "@react-navigation/native";
 
 /*
     keep this comment and don't delete it, chatgpt.
@@ -55,56 +56,83 @@ export default function MatchesScreen() {
     const [loading, setLoading] = useState<boolean>(false);
     const [selectedMatch, setSelectedMatch] = useState<any | null>(null);
     const [modalVisible, setModalVisible] = useState(false);
+    const ws = useRef<WebSocket | null>(null);
 
-    const fetchEventData = useCallback(async () => {
-        if (eventId) {
-            setLoading(true);
-            try {
-                const response = await axios.get(
-                    `http://192.168.1.9:3000/api/events/${eventId}`
-                );
-                const { title, date, matches } = response.data.event;
-                setEventTitle(title);
-                setEventDate(date);
-                setMatches(matches || []);
-                setError(null);
-            } catch (err) {
-                const axiosError = err as AxiosError;
-                console.error("Error fetching event data:", {
-                    message: axiosError.message,
-                    response: axiosError.response
-                        ? {
-                            status: axiosError.response.status,
-                            data: axiosError.response.data,
-                        }
-                        : null,
-                    eventId,
-                });
-                setError("Failed to fetch event data");
-                setEventTitle(null);
-                setEventDate(null);
-                setMatches([]);
-            } finally {
-                setLoading(false);
-            }
-        } else {
-            setError("No event ID provided");
+    const fetchEventData = async () => {
+        if (!eventId) return;
+        setLoading(true);
+        try {
+            const response = await axios.get(`http://192.168.1.9:3000/api/events/${eventId}`);
+            const { title, date, matches } = response.data.event;
+            setEventTitle(title);
+            setEventDate(date);
+            setMatches(matches || []);
+            setError(null);
+        } catch (err) {
+            const axiosError = err as AxiosError;
+            console.error("Error fetching event data:", {
+                message: axiosError.message,
+                response: axiosError.response
+                    ? {
+                        status: axiosError.response.status,
+                        data: axiosError.response.data,
+                    }
+                    : null,
+                eventId,
+            });
+            setError("Failed to fetch event data");
             setEventTitle(null);
             setEventDate(null);
             setMatches([]);
+        } finally {
             setLoading(false);
         }
-    }, [eventId]);
-
-    useEffect(() => {
-        fetchEventData();
-    }, [fetchEventData]);
+    };
 
     useFocusEffect(
-        useCallback(() => {
+        React.useCallback(() => {
             fetchEventData();
-        }, [fetchEventData])
+        }, [eventId])
     );
+
+    useEffect(() => {
+        if (!eventId) return;
+
+        ws.current = new WebSocket(`ws://192.168.1.9:3000/ws/events/${eventId}`);
+
+        ws.current.onopen = () => {
+            console.log("WebSocket connection opened");
+        };
+
+        ws.current.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                //const { matchId, winner } = data;
+                const matchId = data.match.id;
+                const winner = data.match.winner;
+                console.log("Received match update:", { matchId, winner });
+                setMatches((prevMatches) =>
+                    prevMatches.map((m) =>
+                        m.id === matchId ? { ...m, winner } : m
+                    )
+                );
+            } catch (err) {
+                console.error("Error parsing WebSocket message:", err);
+            }
+        };
+
+        ws.current.onerror = (error) => {
+            console.error("WebSocket error:", error);
+        };
+
+        ws.current.onclose = () => {
+            console.log("WebSocket connection closed");
+        };
+
+        return () => {
+            ws.current?.close();
+        };
+    }, [eventId]);
 
     const handleMatchClick = (match: any) => {
         setSelectedMatch(match);
@@ -113,15 +141,13 @@ export default function MatchesScreen() {
 
     const handleWinnerSelect = (winner: string) => {
         if (selectedMatch) {
+            console.log(`Updating match ${selectedMatch.id} in event ${eventId} with winner ${winner}`);
             axios
-                .patch(`http://192.168.1.9:3000/api/events/${eventId}/matches/${selectedMatch.id}/winner`, {
+                .patch(`http://192.168.1.9:3000/api/events/${eventId}/matches/${selectedMatch.id}`, {
                     winner,
                 })
-                .then((response) => {
-                    const updatedMatches = matches.map((m) =>
-                        m.id === selectedMatch.id ? { ...m, winner: response.data.match.winner } : m
-                    );
-                    setMatches(updatedMatches);
+                .then(() => {
+                    // The backend will notify via WebSocket, so we don't update here
                     setModalVisible(false);
                 })
                 .catch((error) => {
@@ -129,6 +155,7 @@ export default function MatchesScreen() {
                 });
         }
     };
+
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -148,8 +175,8 @@ export default function MatchesScreen() {
                         <View key={match.id} style={styles.matchBox}>
                             <Text style={styles.roundText}>Round {match.round}</Text>
                             <Text style={styles.matchText}>
-                                {match.player1} {match.winner === match.player1 && "✅"} vs{" "}
-                                {match.player2} {match.winner === match.player2 && "✅"}
+                                {match.player1} {match.winner === match.player1 && '✅'} vs{" "}
+                                {match.player2} {match.winner === match.player2 && '✅'}
                             </Text>
                             <TouchableOpacity
                                 style={styles.button}
@@ -197,131 +224,29 @@ export default function MatchesScreen() {
 }
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: "#000",
-    },
-    participantsContainer: {
-        padding: 20,
-    },
-    sectionTitle: {
-        color: "#32CD32",
-        fontSize: 20,
-        marginTop: 20,
-        marginBottom: 10,
-        fontFamily: "RussoOne",
-    },
-    matchBox: {
-        backgroundColor: "#1A1A1A",
-        padding: 10,
-        borderRadius: 5,
-        marginVertical: 5,
-    },
-    matchText: {
-        color: "#fff",
-        fontSize: 16,
-        textAlign: "center",
-        fontFamily: "RussoOne",
-    },
-    roundText: {
-        color: "#32CD32",
-        fontSize: 14,
-        marginBottom: 5,
-    },
-    button: {
-        backgroundColor: "#32CD32",
-        padding: 10,
-        borderRadius: 5,
-        marginTop: 10,
-    },
-    buttonText: {
-        color: "#fff",
-        fontSize: 14,
-        textAlign: "center",
-    },
-    header: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 15,
-    },
-    backButton: {
-        padding: 10,
-    },
-    backText: {
-        color: "#32CD32",
-        fontSize: 18,
-    },
-    menuButton: {
-        padding: 10,
-    },
-    menuText: {
-        color: "#32CD32",
-        fontSize: 30,
-    },
-    errorText: {
-        color: "red",
-        fontSize: 16,
-        marginBottom: 15,
-    },
-    loadingText: {
-        color: "#B0B0B0",
-        fontSize: 16,
-        marginBottom: 15,
-    },
-    noParticipantsText: {
-        color: "#B0B0B0",
-        fontSize: 16,
-        marginBottom: 15,
-    },
-    eventTitle: {
-        color: "#32CD32",
-        fontSize: 24,
-        fontWeight: "bold",
-        marginBottom: 10,
-        fontFamily: "RussoOne",
-    },
-    eventInfo: {
-        color: "#B0B0B0",
-        fontSize: 16,
-        marginBottom: 5,
-    },
-    modalOverlay: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-    },
-    modalContent: {
-        backgroundColor: "#1A1A1A",
-        padding: 20,
-        borderRadius: 10,
-        width: 300,
-        alignItems: "center",
-    },
-    modalTitle: {
-        color: "#32CD32",
-        fontSize: 18,
-        marginBottom: 10,
-    },
-    playerSelection: {
-        flexDirection: "row",
-        width: "100%",
-        justifyContent: "space-between",
-    },
-    playerColumn: {
-        flex: 1,
-        alignItems: "center",
-        padding: 10,
-    },
-    playerName: {
-        color: "#fff",
-        fontSize: 18,
-        fontFamily: "RussoOne",
-    },
-    divider: {
-        width: 2,
-        backgroundColor: "#32CD32",
-        height: "100%",
-    },
+    safeArea: { flex: 1, backgroundColor: "#000" },
+    participantsContainer: { padding: 20 },
+    sectionTitle: { color: "#32CD32", fontSize: 20, marginTop: 20, marginBottom: 10, fontFamily: "RussoOne" },
+    matchBox: { backgroundColor: "#1A1A1A", padding: 10, borderRadius: 5, marginVertical: 5 },
+    matchText: { color: "#fff", fontSize: 16, textAlign: "center", fontFamily: "RussoOne" },
+    roundText: { color: "#32CD32", fontSize: 14, marginBottom: 5 },
+    button: { backgroundColor: "#32CD32", padding: 10, borderRadius: 5, marginTop: 10 },
+    buttonText: { color: "#fff", fontSize: 14, textAlign: "center" },
+    header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 15 },
+    backButton: { padding: 10 },
+    backText: { color: "#32CD32", fontSize: 18 },
+    menuButton: { padding: 10 },
+    menuText: { color: "#32CD32", fontSize: 30 },
+    errorText: { color: "red", fontSize: 16, marginBottom: 15 },
+    loadingText: { color: "#B0B0B0", fontSize: 16, marginBottom: 15 },
+    noParticipantsText: { color: "#B0B0B0", fontSize: 16, marginBottom: 15 },
+    eventTitle: { color: "#32CD32", fontSize: 24, fontWeight: "bold", marginBottom: 10, fontFamily: "RussoOne" },
+    eventInfo: { color: "#B0B0B0", fontSize: 16, marginBottom: 5 },
+    modalOverlay: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0, 0, 0, 0.5)" },
+    modalContent: { backgroundColor: "#1A1A1A", padding: 20, borderRadius: 10, width: 300, alignItems: "center" },
+    modalTitle: { color: "#32CD32", fontSize: 18, marginBottom: 10 },
+    playerSelection: { flexDirection: "row", width: "100%", justifyContent: "space-between" },
+    playerColumn: { flex: 1, alignItems: "center", padding: 10 },
+    playerName: { color: "#fff", fontSize: 18, fontFamily: "RussoOne" },
+    divider: { width: 2, backgroundColor: "#32CD32", height: "100%" },
 });
