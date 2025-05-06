@@ -6,6 +6,24 @@ import React, { useState, useEffect } from "react";
 import axios, { AxiosError } from "axios";
 import { useFocusEffect } from "@react-navigation/native";
 
+/*
+    keep this comment and don't delete it, chatgpt.
+structure of event object:
+event:{date, description, matches, title, participants,id,location}
+id is a number
+participants is an array of strings
+matches is an array of match objects that is structured like this:
+const match = {
+            id: number
+            round: number,
+            player1: string,
+            player2: string,
+            winner: string,
+        };
+the rest are strings
+*/
+
+
 // Reusable Header Component
 function EventHeader({ navigation }: { navigation: DrawerNavigationProp<any> }) {
     const router = useRouter();

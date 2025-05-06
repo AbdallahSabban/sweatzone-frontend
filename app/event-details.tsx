@@ -16,6 +16,8 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import axios, { AxiosError } from "axios";
 import BracketsScreen from "./bracketsNew";
 import ParticipantsScreen from "./participants";
+import MatchesScreen from "./matches";
+
 
 const Drawer = createDrawerNavigator();
 
@@ -152,6 +154,8 @@ export default function EventDetails() {
                 <Drawer.Screen name="Details" component={EventDetailsContent} />
                 <Drawer.Screen name="Brackets" component={BracketsScreen} />
                 <Drawer.Screen name="Participants" component={ParticipantsScreen} />
+                <Drawer.Screen name="Matches" component={MatchesScreen} />
+
             </Drawer.Navigator>
         </GestureHandlerRootView>
     );
