@@ -230,6 +230,7 @@ const styles = StyleSheet.create({
         padding: 15,
         borderRadius: 10,
         alignItems: "center",
+        display:"none"
     },
     registerButtonText: {
         color: "#000",
